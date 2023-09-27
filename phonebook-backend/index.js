@@ -17,10 +17,6 @@ app.use(
   )
 );
 
-app.get("/", (req, res) => {
-  res.send("<h1>Hello Brouu</h1>");
-});
-
 app.get("/api/persons", (req, res) => {
   Person.find({}).then((persons) => {
     res.json(persons);
@@ -37,7 +33,7 @@ app.get("/info", (req, res) => {
   });
 });
 
-app.get("/api/persons/:id", (req, res, next) => {
+app.get("/api/persons/:id", async (req, res, next) => {
   Person.findById(req.params.id)
     .then((person) => {
       res.json(person);
@@ -60,9 +56,12 @@ app.post("/api/persons", (req, res, next) => {
     name: body.name,
     number: body.number,
   });
-  person.save().then((newPerson) => {
-    res.json(newPerson);
-  });
+  person
+    .save()
+    .then((newPerson) => {
+      res.json(newPerson);
+    })
+    .catch((err) => next(err));
 });
 
 app.put("/api/persons/:id", (req, res, next) => {
@@ -102,7 +101,7 @@ const handleError = (error, req, res, next) => {
   if (error.name === "CastError") {
     return res.status(400).json({ error: "Bad Request" });
   } else if (error.name === "ValidationError") {
-    return res.status(400).json({ error: "Validation Error" });
+    return res.status(400).json({ error: error.message });
   }
   next(error);
 };
