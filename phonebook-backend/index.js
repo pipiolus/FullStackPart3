@@ -28,27 +28,34 @@ app.get("/api/persons", (req, res) => {
 });
 
 app.get("/info", (req, res) => {
-  res.send(`<p><b>Phonebook has info for ${
-    Person.length
-  } people</b></p>
-    <p><b>${new Date()}<b/></p>`);
-});
-
-app.get("/api/persons/:id", (req, res) => {
-  Person.findById(req.params.id).then((person) => {
-    res.json(person);
+  Person.find({}).then((persons) => {
+    const length = Object.keys(persons).length;
+    res.send(`
+    <h2>Phonebook has info for ${length} people</h2>
+    <p>${new Date()}</p>
+    `);
   });
 });
 
-app.post("/api/persons", (req, res) => {
+app.get("/api/persons/:id", (req, res, next) => {
+  Person.findById(req.params.id)
+    .then((person) => {
+      res.json(person);
+    })
+    .catch((error) => next(error));
+});
+
+app.post("/api/persons", (req, res, next) => {
   const body = req.body;
 
   if (body.name === undefined || body.number === undefined) {
-    return res.status(400).json({
-      error: "missing name or number",
-    });
+    return res
+      .status(400)
+      .json({
+        error: "missing name or number",
+      })
+      .catch((error) => next(error));
   }
-
   const person = new Person({
     name: body.name,
     number: body.number,
@@ -58,14 +65,43 @@ app.post("/api/persons", (req, res) => {
   });
 });
 
-/* app.delete("/api/persons/:id", (req, res) => {
-  Person.findById(req.params.id).then(person => {
-    Person.filter(person => person.id)
-  });
+app.put("/api/persons/:id", (req, res, next) => {
+  const body = req.body;
 
+  const person = {
+    name: body.name,
+    number: body.number,
+  };
+  Person.findByIdAndUpdate(req.params.id, person, { new: true })
+    .then((updatedPerson) => {
+      res.json(updatedPerson);
+    })
+    .catch((error) => next(error));
+});
 
-  res.status(204).end();
-}); */
+app.delete("/api/persons/:id", (req, res, next) => {
+  Person.findByIdAndRemove(req.params.id)
+    .then((result) => {
+      res.status(204).end();
+    })
+    .catch((error) => next(error));
+});
+
+const unknownEndpoint = (req, res) => {
+  res.status(404).send({ error: "Unknown Endpoint" });
+};
+app.use(unknownEndpoint);
+
+const handleError = (error, req, res, next) => {
+  console.log(error.message);
+
+  if (error.name === "CastError") {
+    res.status(400).send({ error: "Bad request" });
+  }
+  next(error);
+};
+
+app.use(handleError);
 
 const PORT = process.env.PORT;
 app.listen(PORT, () => {
