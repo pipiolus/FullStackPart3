@@ -23,17 +23,19 @@ app.get("/api/persons", (req, res) => {
   });
 });
 
-app.get("/info", (req, res) => {
-  Person.find({}).then((persons) => {
-    const length = Object.keys(persons).length;
-    res.send(`
+app.get("/info", (req, res, next) => {
+  Person.find({})
+    .then((persons) => {
+      const length = Object.keys(persons).length;
+      res.send(`
     <h2>Phonebook has info for ${length} people</h2>
     <p>${new Date()}</p>
     `);
-  });
+    })
+    .catch((error) => next(error));
 });
 
-app.get("/api/persons/:id", async (req, res, next) => {
+app.get("/api/persons/:id", (req, res, next) => {
   Person.findById(req.params.id)
     .then((person) => {
       res.json(person);
